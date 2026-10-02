@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>白石角搵樓 · 按揭計算器</title>
+<style>
+  :root {
+    --bg:#0f1419; --card:#1a2332; --line:#2a3a4f; --text:#e8eef6; --muted:#8b9bb0;
+    --accent:#3b82f6; --accent2:#22c55e; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:920px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:1.35rem;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+  .grid{display:grid;gap:16px}
+  @media(min-width:760px){.grid{grid-template-columns:1.1fr .9fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .card h2{font-size:1rem;margin:0 0 14px;color:#cbd5e1}
+  label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+  .row{margin-bottom:16px}
+  .val{font-weight:600;color:var(--accent2);float:right}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .presets button{background:#243044;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.8rem}
+  .presets button:hover{border-color:var(--accent)}
+  .big{font-size:1.6rem;font-weight:700;color:var(--accent2)}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpi div{background:#121a26;border-radius:10px;padding:12px}
+  .kpi span{display:block;font-size:.75rem;color:var(--muted)}
+  .kpi strong{font-size:1.05rem}
+  table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px}
+  th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:500}
+  .note{font-size:.78rem;color:var(--muted);margin-top:14px}
+  .tog{display:flex;align-items:center;gap:8px;font-size:.9rem;margin-top:8px}
+  .tog input{accent-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>按揭總支出計算器</h1>
+  <p class="sub">同琴日格式：首期／裝修／印花稅／代理／律師＋月供＋全程利息。數字粗算，非銀行批核。</p>
+
+  <div class="presets">
+    <button type="button" data-p="1200">$1,200萬 · 三成</button>
+    <button type="button" data-p="1350" data-ltv="70">$1,350萬 · 三成</button>
+    <button type="button" data-p="1350" data-ltv="80">$1,350萬 · 八成</button>
+    <button type="button" data-p="1400">$1,400萬 · 三成</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>參數</h2>
+      <div class="row">
+        <label>樓價 <span class="val" id="vPrice"></span></label>
+        <input type="range" id="price" min="500" max="2500" step="10" value="1350"/>
+      </div>
+      <div class="row">
+        <label>按揭成數（LTV） <span class="val" id="vLtv"></span></label>
+        <input type="range" id="ltv" min="50" max="90" step="5" value="70"/>
+      </div>
+      <div class="row">
+        <label>年期 <span class="val" id="vYears"></span></label>
+        <input type="range" id="years" min="10" max="30" step="1" value="30"/>
+      </div>
+      <div class="row">
+        <label>年利率 <span class="val" id="vRate"></span></label>
+        <input type="range" id="rate" min="2.0" max="5.0" step="0.05" value="3.25"/>
+      </div>
+      <div class="row">
+        <label>裝修 <span class="val" id="vReno"></span></label>
+        <input type="range" id="reno" min="0" max="300" step="5" value="100"/>
+      </div>
+      <div class="row">
+        <label>買方代理佣 <span class="val" id="vAgency"></span></label>
+        <input type="range" id="agency" min="0" max="2" step="0.1" value="1"/>
+      </div>
+      <div class="row">
+        <label>律師／雜費 <span class="val" id="vLegal"></span></label>
+        <input type="range" id="legal" min="0" max="10" step="0.5" value="3"/>
+      </div>
+      <div class="row">
+        <label>按保保費（估） <span class="val" id="vMi"></span></label>
+        <input type="range" id="mi" min="0" max="30" step="0.1" value="0"/>
+      </div>
+      <label class="tog"><input type="checkbox" id="miInLoan"/> 按保保費加落按揭</label>
+      <p class="note">印花稅用第2標準粗算（港人自住常見）。八成／九成另受按保同樓價上限規限，呢度只計數學。</p>
+    </div>
+
+    <div class="card">
+      <h2>結果</h2>
+      <div>即時現金合計</div>
+      <div class="big" id="cashTotal">—</div>
+      <div class="kpi" style="margin-top:14px">
+        <div><span>首期</span><strong id="kDown">—</strong></div>
+        <div><span>貸款額</span><strong id="kLoan">—</strong></div>
+        <div><span>每月供款</span><strong id="kPay">—</strong></div>
+        <div><span>印花稅（約）</span><strong id="kStamp">—</strong></div>
+        <div><span>30年利息（或所選年期）</span><strong id="kInt">—</strong></div>
+        <div><span>全程總支出</span><strong id="kAll">—</strong></div>
+      </div>
+      <h2 style="margin-top:18px">即時現金明細</h2>
+      <table>
+        <tbody id="cashRows"></tbody>
+      </table>
+      <h2 style="margin-top:18px">常見息率對照（其餘參數不變）</h2>
+      <table>
+        <thead><tr><th>息率</th><th>月供</th><th>利息</th><th>全程</th></tr></thead>
+        <tbody id="rateRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const wan = n => (n/10000).toLocaleString('zh-HK',{maximumFractionDigits:1}) + '萬';
+const hkd = n => '$' + Math.round(n).toLocaleString('zh-HK');
+
+function stampScale2(price){
+  // Simplified IRD Scale 2 bands commonly used for rough calc
+  // For > $9,176,470: $375,000 + 4.25% of excess (covers typical 12–15M band for this tool)
+  if(price <= 3000000) return 100;
+  if(price <= 3524240) return 100 + (price-3000000)*0.1;
+  if(price <= 4500000) return 100 + (price-3000000)*0.015; // fallback simplistic
+  // Use progressive approximation matching earlier chats for mid-teens:
+  const threshold = 9176470;
+  if(price > threshold) return 375000 + 0.0425*(price-threshold);
+  // Mid bands rough:
+  if(price > 6000000) return 90000 + 0.0375*(price-6000000); // rough
+  return price * 0.015;
+}
+
+function mpay(L, annual, years){
+  if(L<=0) return 0;
+  const r=annual/12, n=years*12;
+  if(r===0) return L/n;
+  return L*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+}
+
+function calc(){
+  const price = +$('price').value * 10000;
+  const ltv = +$('ltv').value / 100;
+  const years = +$('years').value;
+  const rate = +$('rate').value / 100;
+  const reno = +$('reno').value * 10000;
+  const agencyPct = +$('agency').value / 100;
+  const legal = +$('legal').value * 10000;
+  let mi = +$('mi').value * 10000;
+  const miIn = $('miInLoan').checked;
+
+  // auto hint MI when LTV>70 and mi left at 0 from preset
+  const down = price * (1-ltv);
+  let loan = price * ltv;
+  const stamp = stampScale2(price);
+  const agency = price * agencyPct;
+
+  let miCash = 0, miLoan = 0;
+  if(mi > 0){
+    if(miIn){ miLoan = mi; loan += mi; }
+    else miCash = mi;
+  }
+
+  const cashItems = [
+    ['首期（' + Math.round((1-ltv)*100) + '%）', down],
+    ['裝修', reno],
+    ['印花稅第2標準（約）', stamp],
+    ['買方代理佣', agency],
+    ['律師／雜費', legal],
+  ];
+  if(miCash) cashItems.push(['按保保費', miCash]);
+  if(miLoan) cashItems.push(['按保保費（加落按）', 0]);
+
+  const cashTotal = cashItems.reduce((s,[,v])=>s+v,0);
+  const pay = mpay(loan, rate, years);
+  const totalPay = pay * years * 12;
+  const interest = totalPay - loan;
+  const allIn = price + reno + stamp + agency + legal + miCash + interest + (miLoan?0:0);
+  // when MI in loan, MI principal repaid via loan; included in interest+loan payments already as part of loan
+  // allIn = down+reno+fees+miCash + (loan repayments) = price+reno+fees+miCash+interest  (since down+loan=price, and miLoan in loan adds mi to repayments)
+  const allIn2 = cashTotal + totalPay; // exact cash over life excluding nothing
+
+  $('vPrice').textContent = wan(price);
+  $('vLtv').textContent = Math.round(ltv*100) + '%（貸 ' + wan(price*ltv) + '）';
+  $('vYears').textContent = years + ' 年';
+  $('vRate').textContent = (rate*100).toFixed(2) + '%';
+  $('vReno').textContent = wan(reno);
+  $('vAgency').textContent = (agencyPct*100).toFixed(1) + '%（' + wan(agency) + '）';
+  $('vLegal').textContent = wan(legal);
+  $('vMi').textContent = wan(mi) + (miIn && mi ? ' · 加落按' : '');
+
+  $('cashTotal').textContent = wan(cashTotal);
+  $('kDown').textContent = wan(down);
+  $('kLoan').textContent = wan(loan);
+  $('kPay').textContent = hkd(pay) + '／月';
+  $('kStamp').textContent = wan(stamp);
+  $('kInt').textContent = wan(interest);
+  $('kAll').textContent = wan(allIn2);
+
+  $('cashRows').innerHTML = cashItems.map(([k,v])=>`<tr><td>${k}</td><td>${v?wan(v):'（已計入貸款）'}</td></tr>`).join('')
+    + `<tr><td><strong>合計</strong></td><td><strong>${wan(cashTotal)}</strong></td></tr>`;
+
+  const rates = [2.68,2.93,3.25,3.5,4.0];
+  $('rateRows').innerHTML = rates.map(r=>{
+    const L = price*ltv + (miIn?mi:0);
+    const m = mpay(L, r/100, years);
+    const int = m*years*12 - L;
+    const all = cashTotal + m*years*12;
+    const hi = Math.abs(r - rate*100) < 0.01;
+    return `<tr style="${hi?'background:#1e3a5f':''}"><td>${r.toFixed(2)}%</td><td>${hkd(m)}</td><td>${wan(int)}</td><td>${wan(all)}</td></tr>`;
+  }).join('');
+}
+
+['price','ltv','years','rate','reno','agency','legal','mi'].forEach(id=>{
+  $(id).addEventListener('input', calc);
+});
+$('miInLoan').addEventListener('change', calc);
+
+document.querySelectorAll('.presets button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const p = +btn.dataset.p;
+    const ltv = btn.dataset.ltv ? +btn.dataset.ltv : 70;
+    $('price').value = p;
+    $('ltv').value = ltv;
+    $('years').value = 30;
+    $('rate').value = 3.25;
+    $('reno').value = 100;
+    $('agency').value = 1;
+    $('legal').value = 3;
+    if(ltv >= 80){
+      // rough MI ~1.1% of property for 80% demo aligned to earlier ~11.8萬 @1350萬
+      $('mi').value = (p * 0.00875).toFixed(1); // ~11.8 at 1350
+      $('miInLoan').checked = true;
+    } else {
+      $('mi').value = 0;
+      $('miInLoan').checked = false;
+    }
+    calc();
+  });
+});
+
+calc();
+</script>
+</body>
+</html>
